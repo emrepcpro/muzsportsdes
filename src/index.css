@@ -5,37 +5,61 @@
   --color-primary-hover: #a3e635;
   --color-primary-dark: #65a30d;
 
-  --color-background: #0a0a0a;
-  --color-background-card: #161616;
+  --color-background: #060606;
+  --color-background-card: #121212;
   --color-background-highlight: #1a1a1a;
-  --color-background-inner: #0d0d0d;
+  --color-background-inner: #0a0a0a;
 
   --font-sans: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  --shadow-neon: 0 0 15px rgba(132, 204, 22, 0.3);
+  --shadow-stadium: 0 10px 40px rgba(0, 0, 0, 0.8);
 }
 
 @layer base {
   body {
-    @apply bg-background text-white font-sans;
+    @apply bg-background text-white font-sans antialiased;
   }
 }
 
-.glass-panel {
-  @apply bg-background-card border border-white/10 rounded-xl overflow-hidden;
-}
+@layer components {
+  .glass-panel {
+    @apply bg-background-card/80 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-stadium;
+  }
 
-.glass-panel-active {
-  @apply bg-background-highlight border border-primary/30 rounded-xl overflow-hidden;
-}
+  .glass-panel-active {
+    @apply bg-background-highlight border border-primary/30 rounded-2xl overflow-hidden shadow-neon;
+  }
 
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-hover;
+  .stadium-border {
+    @apply border border-white/10 hover:border-primary/50 transition-all duration-300;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-white to-white/40;
+  }
+
+  .text-primary-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-primary to-primary-hover;
+  }
+
+  @keyframes float-up {
+    0% { transform: translateY(100%) scale(0.5); opacity: 0; }
+    20% { opacity: 1; transform: translateY(0) scale(1); }
+    80% { opacity: 1; }
+    100% { transform: translateY(-200%) scale(1.5); opacity: 0; }
+  }
+
+  .animate-float-up {
+    animation: float-up 3s ease-out forwards;
+  }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -43,9 +67,15 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full;
+  @apply bg-white/10 rounded-full hover:bg-primary/40 transition-colors;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-primary/50;
+/* Animations */
+@keyframes pulse-neon {
+  0%, 100% { box-shadow: 0 0 5px rgba(132, 204, 22, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(132, 204, 22, 0.5); }
+}
+
+.animate-neon {
+  animation: pulse-neon 2s infinite;
 }

@@ -12,6 +12,8 @@ export interface Match {
   awayTeam: string;
   homeScore: number;
   awayScore: number;
+  homeLogo?: string;
+  awayLogo?: string;
   time: string;
   status: 'live' | 'finished' | 'scheduled';
   stats: {
@@ -26,7 +28,7 @@ export interface Match {
 
 export interface MatchEvent {
   id: string;
-  minute: number;
+  minute: number | string;
   type: 'goal' | 'card' | 'commentary';
   team?: 'home' | 'away';
   player?: string;
@@ -63,6 +65,7 @@ export interface NewsArticle {
   title: string;
   summary: string;
   content: string;
+  image?: string;
   date: number;
   category: string;
   isAiSummarized: boolean;

@@ -4,13 +4,23 @@ import MatchTracker from './components/MatchTracker';
 import MuzCafes from './components/MuzCafes';
 import ServerlessForum from './components/ServerlessForum';
 import SportsNews from './components/SportsNews';
+import AIAnalytics from './components/AIAnalytics';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('maçlar');
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'maçlar': return <MatchTracker />;
+      case 'maçlar': return (
+        <div className="flex flex-col h-full overflow-hidden">
+           <div className="p-4 lg:p-8 pb-0">
+              <AIAnalytics matches={[]} news={[]} />
+           </div>
+           <div className="flex-1 overflow-hidden">
+              <MatchTracker />
+           </div>
+        </div>
+      );
       case 'forum': return <ServerlessForum />;
       case 'muzcafe': return <MuzCafes />;
       case 'haberler': return <SportsNews />;

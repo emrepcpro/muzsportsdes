@@ -1,7 +1,7 @@
 export const ai = {
   summarize: async (content: string): Promise<string> => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return `[AI ÖZETİ]: ${content.substring(0, 150)}... Bu haber 30 günden eski olduğu için AI tarafından özetlenmiştir.`;
+    return `[AI ÖZETİ]: ${content.substring(0, 200)}... Bu içerik 30 günden eski olduğu için yapay zeka tarafından optimize edilerek özetlenmiştir.`;
   },
 
   predictMatch: (homeTeam: string, awayTeam: string): string => {

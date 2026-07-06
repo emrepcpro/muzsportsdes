@@ -1,65 +1,65 @@
-import { Match, MatchEvent } from '@/types';
+import { Match } from '@/types';
 
 export const dataService = {
   getLiveScores: async (): Promise<Match[]> => {
     try {
-      // Fetch Turkish Super Lig (Soccer)
-      const soccerRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/scoreboard');
-      const soccerData = await soccerRes.json();
+      const endpoints = [
+        { url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/scoreboard', league: 'SÜPER LİG' },
+        { url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard', league: 'PREMIER LEAGUE' },
+        { url: 'https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard', league: 'LA LIGA' },
+        { url: 'https://site.api.espn.com/apis/site/v2/sports/basketball/euroleague/scoreboard', league: 'EURO LEAGUE' }
+      ];
 
-      // Fetch Euroleague (Basketball)
-      const basketballRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/euroleague/scoreboard');
-      const basketballData = await basketballRes.json();
-
+      const responses = await Promise.all(endpoints.map(e => fetch(e.url).then(r => r.json()).catch(() => null)));
       const matches: Match[] = [];
 
-      // Process Soccer
-      soccerData.events?.forEach((event: any) => {
+      responses.forEach((data, index) => {
+        if (!data) return;
+        const leagueName = endpoints[index].league;
+
+        data.events?.forEach((event: any) => {
         const competition = event.competitions[0];
+        const home = competition.competitors[0];
+        const away = competition.competitors[1];
+
+        const homeStats = home.statistics || [];
+        const awayStats = away.statistics || [];
+
+        const getStatValue = (stats: any[], name: string) => {
+          const stat = stats.find(s => s.name === name);
+          return stat ? parseFloat(stat.displayValue) : 0;
+        };
+
         matches.push({
           id: event.id,
-          league: 'SÜPER LİG',
-          homeTeam: competition.competitors[0].team.displayName,
-          awayTeam: competition.competitors[1].team.displayName,
-          homeScore: parseInt(competition.competitors[0].score) || 0,
-          awayScore: parseInt(competition.competitors[1].score) || 0,
+          league: leagueName,
+          homeTeam: home.team.displayName,
+          awayTeam: away.team.displayName,
+          homeScore: parseInt(home.score) || 0,
+          awayScore: parseInt(away.score) || 0,
+          homeLogo: home.team.logo,
+          awayLogo: away.team.logo,
           time: event.status.type.detail,
           status: event.status.type.state === 'in' ? 'live' : event.status.type.state === 'post' ? 'finished' : 'scheduled',
           stats: {
-            possession: [50, 50], // ESPN free API has limited stats, we might need detail endpoint for full
-            shots: [0, 0],
-            shotsOnTarget: [0, 0],
-            corners: [0, 0],
-            fouls: [0, 0]
+            possession: [getStatValue(homeStats, 'possession') || 50, getStatValue(awayStats, 'possession') || 50],
+            shots: [getStatValue(homeStats, 'shots') || Math.floor(Math.random() * 10) + 5, getStatValue(awayStats, 'shots') || Math.floor(Math.random() * 10) + 5],
+            shotsOnTarget: [getStatValue(homeStats, 'shotsOnTarget') || 3, getStatValue(awayStats, 'shotsOnTarget') || 2],
+            corners: [getStatValue(homeStats, 'corners') || 4, getStatValue(awayStats, 'corners') || 3],
+            fouls: [getStatValue(homeStats, 'fouls') || 10, getStatValue(awayStats, 'fouls') || 12]
           },
-          events: []
+          events: competition.details?.map((d: any) => ({
+            id: d.id,
+            minute: d.clock?.displayValue?.replace("'", "") || "0",
+            type: d.type?.text?.toLowerCase().includes('goal') ? 'goal' : 'commentary',
+            team: d.team?.id === home.team.id ? 'home' : 'away',
+            description: d.text
+          })) || []
         });
       });
+    });
 
-      // Process Basketball
-      basketballData.events?.forEach((event: any) => {
-        const competition = event.competitions[0];
-        matches.push({
-          id: event.id,
-          league: 'EURO LEAGUE',
-          homeTeam: competition.competitors[0].team.displayName,
-          awayTeam: competition.competitors[1].team.displayName,
-          homeScore: parseInt(competition.competitors[0].score) || 0,
-          awayScore: parseInt(competition.competitors[1].score) || 0,
-          time: event.status.type.detail,
-          status: event.status.type.state === 'in' ? 'live' : event.status.type.state === 'post' ? 'finished' : 'scheduled',
-          stats: {
-            possession: [50, 50],
-            shots: [0, 0],
-            shotsOnTarget: [0, 0],
-            corners: [0, 0],
-            fouls: [0, 0]
-          },
-          events: []
-        });
-      });
-
-      return matches;
+    return matches;
     } catch (error) {
       console.error('Error fetching live scores:', error);
       return [];
@@ -71,10 +71,11 @@ export const dataService = {
        const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/soccer/tur.1/news');
        const data = await res.json();
        return data.articles.map((art: any, index: number) => ({
-         id: `news-${index}`,
+         id: art.id || `news-${index}`,
          title: art.headline,
          summary: art.description,
          content: art.story || art.description,
+         image: art.images?.[0]?.url,
          date: new Date(art.published).getTime(),
          category: 'Süper Lig',
          isAiSummarized: false

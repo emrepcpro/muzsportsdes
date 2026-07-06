@@ -7,3 +7,17 @@
 
   ➜  Local:   http://localhost:3000/
   ➜  Network: use --host to expose
+8:53:37 PM [vite] hmr update /src/index.css
+8:53:55 PM [vite] hmr update /src/components/Header.tsx, /src/index.css
+8:54:23 PM [vite] hmr update /src/index.css, /src/components/MatchTracker.tsx, /src/components/SportsNews.tsx
+8:54:37 PM [vite] page reload src/types/index.ts
+8:54:58 PM [vite] hmr update /src/components/MatchTracker.tsx, /src/index.css
+8:55:42 PM [vite] hmr update /src/App.tsx, /src/index.css
+8:56:45 PM [vite] hmr update /src/components/MuzCafes.tsx, /src/index.css
+9:04:04 PM [vite] hmr update /src/components/Header.tsx, /src/index.css
+9:04:54 PM [vite] hmr update /src/components/MuzCafes.tsx, /src/index.css
+9:04:59 PM [vite] hmr update /src/index.css
+9:05:37 PM [vite] hmr update /src/index.css, /src/components/MatchTracker.tsx, /src/components/SportsNews.tsx
+9:06:14 PM [vite] hmr update /src/components/MatchTracker.tsx, /src/index.css
+9:06:56 PM [vite] hmr update /src/index.css, /src/components/MatchTracker.tsx, /src/components/SportsNews.tsx
+9:07:56 PM [vite] hmr update /src/components/Header.tsx, /src/index.css
