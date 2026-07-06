@@ -15,6 +15,8 @@ export interface Match {
   homeLogo?: string;
   awayLogo?: string;
   time: string;
+  date: number;
+  aiSummary?: string;
   status: 'live' | 'finished' | 'scheduled';
   stats: {
     possession: [number, number];

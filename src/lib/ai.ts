@@ -4,6 +4,11 @@ export const ai = {
     return `[AI ÖZETİ]: ${content.substring(0, 200)}... Bu içerik 30 günden eski olduğu için yapay zeka tarafından optimize edilerek özetlenmiştir.`;
   },
 
+  summarizeMatch: async (match: any): Promise<string> => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return `[MAÇ ÖZETİ]: ${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}. Bu karşılaşma ${match.time} tarihinde oynanmıştır. AI Analizi: Maçın kritik anları ve istatistikleri sistem tarafından arşivlenmiştir.`;
+  },
+
   predictMatch: (homeTeam: string, awayTeam: string): string => {
     const outcomes = [
       `${homeTeam} ev sahibi avantajıyla favori görünüyor. Tahmin: 2-1`,

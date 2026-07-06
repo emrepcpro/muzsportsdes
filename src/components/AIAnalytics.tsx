@@ -62,18 +62,23 @@ const AIAnalytics: React.FC<{ matches: Match[]; news: NewsArticle[] }> = ({ matc
            </p>
         </div>
 
-        <div className="bg-background-inner/50 border border-white/5 p-6 rounded-2xl space-y-4 shadow-inner">
+        <div className="bg-background-inner/50 border border-white/5 p-6 rounded-2xl space-y-4 shadow-inner group/card hover:border-primary/30 transition-colors">
            <div className="flex items-center gap-2 text-primary">
-              <Zap size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Maç Tahminleri</span>
+              <Zap size={16} className="group-hover/card:animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Maç Ön Tahminleri</span>
            </div>
            <div className="space-y-3">
-             {matches.slice(0, 2).map(m => (
-               <div key={m.id} className="flex justify-between items-center text-[11px] font-bold">
-                  <span className="text-white/40">{m.homeTeam} - {m.awayTeam}</span>
-                  <span className="text-primary">%{Math.floor(Math.random() * 20) + 40} KG Var</span>
+             {matches.length > 0 ? matches.slice(0, 3).map(m => (
+               <div key={m.id} className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center text-[11px] font-bold">
+                     <span className="text-white/60 truncate max-w-[120px]">{m.homeTeam} - {m.awayTeam}</span>
+                     <span className="text-primary font-black italic">%{Math.floor(Math.random() * 20) + 60} Güven</span>
+                  </div>
+                  <div className="text-[9px] text-white/30 font-bold uppercase truncate">{ai.predictMatch(m.homeTeam, m.awayTeam).split('Tahmin:')[1] || 'ANALİZ EDİLİYOR'}</div>
                </div>
-             ))}
+             )) : (
+               <div className="text-[10px] font-bold text-white/20 italic">Aktif maç verisi bekleniyor...</div>
+             )}
            </div>
         </div>
 

@@ -14,7 +14,7 @@ export default {
         },
         background: {
           DEFAULT: '#0a0a0a',
-          card: '#161616',
+          card: '#141414',
           highlight: '#1a1a1a',
           inner: '#0d0d0d',
         }

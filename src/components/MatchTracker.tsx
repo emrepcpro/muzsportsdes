@@ -4,21 +4,29 @@ import { p2p } from '@/lib/p2p';
 import { ai } from '@/lib/ai';
 import { dataService } from '@/lib/data';
 import { clsx } from 'clsx';
-import { Activity, Clock, Zap, TrendingUp, ChevronRight, Trophy } from 'lucide-react';
+import { Activity, Clock, Zap, TrendingUp, ChevronRight, Trophy, Sparkles } from 'lucide-react';
 
-const MatchTracker: React.FC = () => {
+const MatchTracker: React.FC<{ onMatchesUpdate?: (matches: Match[]) => void }> = ({ onMatchesUpdate }) => {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     const data = await dataService.getLiveScores();
-    setMatches(data);
+    const processed = await Promise.all(data.map(async (m) => {
+      if (ai.isOlderThan30Days(m.date)) {
+         const summary = await ai.summarizeMatch(m);
+         return { ...m, aiSummary: summary };
+      }
+      return m;
+    }));
+    setMatches(processed);
+    if (onMatchesUpdate) onMatchesUpdate(processed);
     setLoading(false);
-    if (data.length > 0 && !selectedMatch) {
-      setSelectedMatch(data[0]);
+    if (processed.length > 0 && !selectedMatch) {
+      setSelectedMatch(processed[0]);
     }
-    p2p.broadcast('MATCH_SYNC', { matches: data });
+    p2p.broadcast('MATCH_SYNC', { matches: processed });
   };
 
   useEffect(() => {
@@ -219,37 +227,50 @@ const MatchTracker: React.FC = () => {
               </p>
             </div>
 
-            {/* Commentary */}
+            {/* Commentary / AI Summary */}
             <div className="glass-panel p-10">
                <div className="flex items-center gap-3 mb-10">
                 <div className="w-1.5 h-6 bg-primary rounded-full shadow-neon" />
-                <h3 className="font-black text-xs tracking-[0.2em] uppercase">MAÇ ANLATIMI</h3>
+                <h3 className="font-black text-xs tracking-[0.2em] uppercase">{currentMatch.aiSummary ? 'AI MAÇ ÖZETİ' : 'MAÇ ANLATIMI'}</h3>
               </div>
-              <div className="space-y-8 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
-                {currentMatch.events.length > 0 ? currentMatch.events.slice().reverse().map((event, idx) => (
-                  <div key={event.id || idx} className="flex gap-6 animate-in slide-in-from-bottom-4">
-                    <div className="w-12 h-12 rounded-2xl bg-background-inner border border-white/5 flex items-center justify-center shrink-0 text-xs font-black text-primary shadow-inner">
-                      {event.minute}'
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className={clsx(
-                          "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
-                          event.type === 'goal' ? "bg-primary text-black" : "bg-white/10 text-white/50"
-                        )}>
-                          {event.type.toUpperCase()}
-                        </span>
+
+              {currentMatch.aiSummary ? (
+                <div className="p-6 bg-primary/5 border border-primary/20 rounded-2xl space-y-4">
+                   <div className="flex items-center gap-2 text-primary">
+                      <Sparkles size={16} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">ARŞİV ÖZETİ</span>
+                   </div>
+                   <p className="text-sm font-bold text-white/80 leading-relaxed italic">
+                      {currentMatch.aiSummary}
+                   </p>
+                </div>
+              ) : (
+                <div className="space-y-8 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
+                  {currentMatch.events.length > 0 ? currentMatch.events.slice().reverse().map((event, idx) => (
+                    <div key={event.id || idx} className="flex gap-6 animate-in slide-in-from-bottom-4">
+                      <div className="w-12 h-12 rounded-2xl bg-background-inner border border-white/5 flex items-center justify-center shrink-0 text-xs font-black text-primary shadow-inner">
+                        {event.minute}'
                       </div>
-                      <p className="text-sm font-bold leading-relaxed text-white/70 tracking-tight">{event.description}</p>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className={clsx(
+                            "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                            event.type === 'goal' ? "bg-primary text-black" : "bg-white/10 text-white/50"
+                          )}>
+                            {event.type.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold leading-relaxed text-white/70 tracking-tight">{event.description}</p>
+                      </div>
                     </div>
-                  </div>
-                )) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-white/10 border-2 border-dashed border-white/5 rounded-[2rem]">
-                     <Clock size={48} className="mb-4 opacity-10" />
-                     <p className="text-[10px] font-black uppercase tracking-[0.3em]">Henüz önemli bir olay yok</p>
-                  </div>
-                )}
-              </div>
+                  )) : (
+                    <div className="flex flex-col items-center justify-center py-20 text-white/10 border-2 border-dashed border-white/5 rounded-[2rem]">
+                       <Clock size={48} className="mb-4 opacity-10" />
+                       <p className="text-[10px] font-black uppercase tracking-[0.3em]">Henüz önemli bir olay yok</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

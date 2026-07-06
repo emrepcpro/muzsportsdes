@@ -40,6 +40,7 @@ export const dataService = {
           homeLogo: home.team.logo,
           awayLogo: away.team.logo,
           time: event.status.type.detail,
+          date: new Date(event.date).getTime(),
           status: event.status.type.state === 'in' ? 'live' : event.status.type.state === 'post' ? 'finished' : 'scheduled',
           stats: {
             possession: [getStatValue(homeStats, 'possession') || 50, getStatValue(awayStats, 'possession') || 50],

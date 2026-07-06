@@ -5,7 +5,7 @@ import { dataService } from '@/lib/data';
 import { NewsArticle } from '@/types';
 import { clsx } from 'clsx';
 
-const SportsNews: React.FC = () => {
+const SportsNews: React.FC<{ onNewsUpdate?: (news: NewsArticle[]) => void }> = ({ onNewsUpdate }) => {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +20,7 @@ const SportsNews: React.FC = () => {
         return art;
       }));
       setNews(processed);
+      if (onNewsUpdate) onNewsUpdate(processed);
       setLoading(false);
     };
     fetchData();
