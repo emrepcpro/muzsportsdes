@@ -1,0 +1,15 @@
+node_modules/
+.env
+dist/
+release/
+android/app/src/main/assets/public/
+ios/App/App/public/
+.DS_Store
+/.vscode/
+/*.localnode_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+.DS_Store
