@@ -2,14 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Match } from '@/types';
 import { p2p } from '@/lib/p2p';
 import { ai } from '@/lib/ai';
+import { storage } from '@/lib/storage';
 import { dataService } from '@/lib/data';
 import { clsx } from 'clsx';
-import { Activity, Clock, Zap, TrendingUp, Sparkles } from 'lucide-react';
+import { Activity, Clock, Zap, TrendingUp, Sparkles, Key, BrainCircuit, RefreshCw } from 'lucide-react';
 
 const MatchTracker: React.FC = () => {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // AI states
+  const [apiKey, setApiKey] = useState(storage.get('ai_api_key', ''));
+  const [provider, setProvider] = useState(storage.get('ai_provider', 'local'));
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const fetchData = async () => {
     const data = await dataService.getLiveScores();
@@ -38,29 +45,65 @@ const MatchTracker: React.FC = () => {
     return () => { unsub(); };
   }, [selectedMatch]);
 
+  const currentMatch = selectedMatch || matches[0];
+
+  // Trigger match analysis
+  const runLiveAnalysis = async () => {
+    if (!currentMatch) return;
+    setIsAnalyzing(true);
+    try {
+      const result = await ai.analyzeMatchWithAi(
+        currentMatch.homeTeam,
+        currentMatch.awayTeam,
+        currentMatch.homeScore,
+        currentMatch.awayScore,
+        currentMatch.league,
+        currentMatch.stats
+      );
+      setAiAnalysis(result);
+    } catch (err) {
+      setAiAnalysis('Analiz üretilirken hata oluştu.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Reset analysis when match changes
+  useEffect(() => {
+    if (currentMatch) {
+      setAiAnalysis('');
+    }
+  }, [currentMatch?.id]);
+
+  const saveAiSettings = (key: string, prov: string) => {
+    storage.set('ai_api_key', key);
+    storage.set('ai_provider', prov);
+    setApiKey(key);
+    setProvider(prov);
+    alert('Yapay Zeka ayarları başarıyla kaydedildi!');
+  };
+
   const prediction = useMemo(() => {
-    if (!selectedMatch) return '';
-    return ai.predictMatch(selectedMatch.homeTeam, selectedMatch.awayTeam);
-  }, [selectedMatch?.id]);
+    if (!currentMatch) return '';
+    return ai.predictMatch(currentMatch.homeTeam, currentMatch.awayTeam);
+  }, [currentMatch?.id]);
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
+    <div className="flex-1 flex items-center justify-center p-20">
        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
-  if (!selectedMatch && matches.length === 0) return (
-     <div className="flex-1 flex flex-col items-center justify-center text-center p-10">
+  if (!currentMatch && matches.length === 0) return (
+     <div className="flex-1 flex flex-col items-center justify-center text-center p-20">
         <h2 className="text-xl font-bold mb-2">Canlı Maç Bulunamadı</h2>
         <p className="text-white/40">Şu an oynanan aktif bir lig maçı bulunmuyor.</p>
      </div>
   );
 
-  const currentMatch = selectedMatch || matches[0];
-
   return (
-    <div className="flex flex-col lg:flex-row h-full">
-      <aside className="w-full lg:w-80 border-r border-white/5 flex flex-col bg-background-inner">
+    <div className="flex flex-col lg:flex-row h-full min-h-[600px]">
+      <aside className="w-full lg:w-80 border-r border-white/5 flex flex-col bg-background-inner shrink-0">
         <div className="p-6 border-b border-white/5">
           <h2 className="text-xs font-black tracking-widest text-white/40 uppercase">Maçlar ({matches.length})</h2>
         </div>
@@ -96,44 +139,84 @@ const MatchTracker: React.FC = () => {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-4 lg:p-10 space-y-8">
-        <div className="rounded-3xl border border-primary/10 bg-primary/10 p-4 text-sm text-white/80">
+      <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 min-w-0">
+        <div className="rounded-3xl border border-primary/10 bg-primary/10 p-5 text-sm text-white/80">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles size={16} />
             <span className="font-black uppercase tracking-[0.3em]">Gerçek zamanlı canlı akış</span>
           </div>
-          <p className="mt-2 text-sm leading-7 text-white/70">Maçlar, olaylar ve tahmin panelleri bir arada, kullanıcı dostu ve hızlı güncelleniyor.</p>
+          <p className="mt-2 text-sm leading-7 text-white/70">Maçlar, istatistikler ve yapay zeka destekli teknik analizler tek ekranda sunucusuz senkronizasyonla çalışıyor.</p>
         </div>
+
         <div className="flex flex-col items-center gap-2 mb-10">
           <div className="text-xs font-black tracking-[0.2em] text-primary mb-4 uppercase">{currentMatch.league}</div>
-          <div className="flex items-center justify-center gap-4 lg:gap-16 w-full max-w-4xl">
-            <div className="flex flex-col items-center gap-4 flex-1">
-              <div className="w-16 h-16 lg:w-24 lg:h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-4xl">⚽</div>
+          <div className="flex items-center justify-center gap-4 lg:gap-16 w-full max-w-4xl flex-wrap">
+            <div className="flex flex-col items-center gap-4 flex-1 min-w-[120px]">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl">⚽</div>
               <div className="text-center">
-                <div className="text-xl lg:text-3xl font-black uppercase tracking-tighter">{currentMatch.homeTeam}</div>
+                <div className="text-lg lg:text-2xl font-black uppercase tracking-tighter truncate max-w-[180px]">{currentMatch.homeTeam}</div>
                 <div className="text-[10px] font-bold text-white/30 tracking-widest mt-1 uppercase">EV SAHİBİ</div>
               </div>
             </div>
 
             <div className="flex flex-col items-center gap-2">
                <div className="bg-background-card border border-white/10 rounded-2xl p-6 lg:p-8 flex items-center gap-6 lg:gap-10 shadow-2xl">
-                  <span className="text-5xl lg:text-7xl font-mono font-black tracking-tighter">{currentMatch.homeScore}</span>
+                  <span className="text-4xl lg:text-6xl font-mono font-black tracking-tighter">{currentMatch.homeScore}</span>
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-primary font-black text-center text-[10px] lg:text-sm leading-tight max-w-[100px]">{currentMatch.time}</span>
                     <div className="w-2 h-2 rounded-full bg-primary animate-pulse mt-1" />
                   </div>
-                  <span className="text-5xl lg:text-7xl font-mono font-black tracking-tighter">{currentMatch.awayScore}</span>
+                  <span className="text-4xl lg:text-6xl font-mono font-black tracking-tighter">{currentMatch.awayScore}</span>
                </div>
             </div>
 
-            <div className="flex flex-col items-center gap-4 flex-1">
-              <div className="w-16 h-16 lg:w-24 lg:h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-4xl">🏆</div>
+            <div className="flex flex-col items-center gap-4 flex-1 min-w-[120px]">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl">🏆</div>
               <div className="text-center">
-                <div className="text-xl lg:text-3xl font-black uppercase tracking-tighter">{currentMatch.awayTeam}</div>
+                <div className="text-lg lg:text-2xl font-black uppercase tracking-tighter truncate max-w-[180px]">{currentMatch.awayTeam}</div>
                 <div className="text-[10px] font-bold text-white/30 tracking-widest mt-1 uppercase">DEPLASMAN</div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* AI Key config panel inside Match Tracker */}
+        <div className="glass-panel p-6 border-white/10 bg-background-inner/40 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2.5">
+              <Key className="text-primary" size={18} />
+              <h3 className="font-black text-xs tracking-widest uppercase">YAPAY ZEKA ENTEGRASYON AYARLARI</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-white/40 uppercase">Mod:</span>
+              <select
+                value={provider}
+                onChange={(e) => saveAiSettings(apiKey, e.target.value)}
+                className="bg-background-inner border border-white/10 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase text-primary outline-none"
+              >
+                <option value="local">Yerel Simülasyon</option>
+                <option value="openai">OpenAI API (GPT-4o-mini)</option>
+              </select>
+            </div>
+          </div>
+
+          {provider === 'openai' && (
+            <div className="flex gap-2">
+              <input
+                type="password"
+                placeholder="OpenAI API Key girin (sk-...)"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="flex-1 bg-background-inner border border-white/10 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-primary/50 text-white/80 font-mono"
+              />
+              <button
+                onClick={() => saveAiSettings(apiKey, provider)}
+                className="px-4 py-2.5 bg-primary text-black font-black text-xs tracking-widest rounded-xl hover:bg-primary-hover transition-all"
+              >
+                KAYDET
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 max-w-7xl mx-auto">
@@ -143,7 +226,7 @@ const MatchTracker: React.FC = () => {
               <h3 className="font-black text-xs tracking-widest uppercase">CANLI İSTATİSTİKLER</h3>
             </div>
             <div className="space-y-8">
-              {Object.entries(currentMatch.stats).map(([key, [home, away]]) => (
+              {Object.entries(currentMatch.stats).map(([key, [home, away]]: any) => (
                 <div key={key} className="space-y-2">
                   <div className="flex justify-between text-[10px] font-black tracking-widest text-white/40 uppercase">
                     <span>{home}{key === 'possession' ? '%' : ''}</span>
@@ -163,15 +246,51 @@ const MatchTracker: React.FC = () => {
           </div>
 
           <div className="space-y-8">
+            {/* Dynamic AI Analysis Panel */}
+            <div className="glass-panel p-8 border-primary/20 bg-primary/[0.01] relative overflow-hidden">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2.5">
+                  <BrainCircuit className="text-primary" size={20} />
+                  <h3 className="font-black text-xs tracking-widest uppercase">AI TAKTİKSEL ANALİZ</h3>
+                </div>
+                <button
+                  onClick={runLiveAnalysis}
+                  disabled={isAnalyzing}
+                  className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-black px-3.5 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all disabled:opacity-50"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={12} /> ANALİZ YAPILIYOR...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={12} /> DETAYLI ANALİZ ÜRET
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {aiAnalysis ? (
+                <p className="text-sm font-medium leading-relaxed text-white/80 whitespace-pre-line font-sans bg-black/35 p-5 rounded-2xl border border-white/5 shadow-inner">
+                  {aiAnalysis}
+                </p>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center text-white/40">
+                  <Sparkles size={32} className="text-primary/40 animate-pulse mb-3" />
+                  <p className="text-xs font-bold uppercase tracking-widest max-w-xs">Maç içi gelişmelere ve anlık verilere göre yapay zeka analizi oluşturmak için yukarıdaki butona tıklayın.</p>
+                </div>
+              )}
+            </div>
+
             <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Zap size={80} className="text-primary" />
               </div>
               <div className="flex items-center gap-3 mb-4">
                 <TrendingUp className="text-primary" size={20} />
-                <h3 className="font-black text-xs tracking-widest text-primary uppercase">AI ÖN TAHMİNİ</h3>
+                <h3 className="font-black text-xs tracking-widest text-primary uppercase">AI MAÇ ÖN TAHMİNİ</h3>
               </div>
-              <p className="text-sm font-medium leading-relaxed text-white/90">
+              <p className="text-sm font-semibold leading-relaxed text-white/90">
                 {prediction}
               </p>
             </div>
@@ -182,7 +301,7 @@ const MatchTracker: React.FC = () => {
                 <h3 className="font-black text-xs tracking-widest uppercase">ANLIK ANLATIM</h3>
               </div>
               <div className="space-y-6">
-                {currentMatch.events.length > 0 ? currentMatch.events.slice().reverse().map(event => (
+                {currentMatch.events && currentMatch.events.length > 0 ? currentMatch.events.slice().reverse().map((event: any) => (
                   <div key={event.id} className="flex gap-4">
                     <div className="w-10 h-10 rounded-lg bg-background-inner border border-white/5 flex items-center justify-center shrink-0 text-[10px] font-black text-primary">
                       {event.minute}'

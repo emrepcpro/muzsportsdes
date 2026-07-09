@@ -52,6 +52,50 @@ export const ai = {
     return outcomes[Math.floor(Math.random() * outcomes.length)];
   },
 
+  analyzeMatchWithAi: async (homeTeam: string, awayTeam: string, homeScore: number, awayScore: number, league: string, stats: any): Promise<string> => {
+    const provider = storage.get('ai_provider', 'local') as Provider;
+    const apiKey = storage.get('ai_api_key', '');
+
+    if (provider === 'openai' && apiKey) {
+      try {
+        const prompt = `Lütfen aşağıdaki maçı ve canlı istatistikleri derinlemesine analiz et ve Türkçe olarak teknik direktör bakış açısıyla yorumla, taktiksel tavsiyeler ver:\n\nLig: ${league}\nEv Sahibi: ${homeTeam} (${homeScore})\nDeplasman: ${awayTeam} (${awayScore})\nİstatistikler: ${JSON.stringify(stats)}`;
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 500,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data?.choices?.[0]?.message?.content || 'Yapay zeka analiz üretemedi.';
+        }
+      } catch (err) {
+        console.error('OpenAI match analysis failed:', err);
+      }
+    }
+
+    // High fidelity simulation incorporating actual live stats
+    await new Promise((r) => setTimeout(r, 600));
+    const isDraw = homeScore === awayScore;
+    const homeLeading = homeScore > awayScore;
+    const leadTeam = homeLeading ? homeTeam : awayTeam;
+    const trailingTeam = homeLeading ? awayTeam : homeTeam;
+
+    const statsDetail = `Topla oynama oranı %${stats.possession?.[0] || 50} - %${stats.possession?.[1] || 50}. Şut sayıları ${stats.shots?.[0] || 0} ev sahibi, ${stats.shots?.[1] || 0} deplasman.`;
+
+    if (isDraw) {
+      return `[MuzSports AI - Taktiksel Analiz]\n\nHer iki takım da sahada dengeli bir mücadele veriyor. Skor ${homeScore}-${awayScore} eşitlikte. ${statsDetail} İki teknik direktör de orta sahayı kalabalık tutarak geçiş savunmasına önem veriyor. Maçın gidişatını duran toplar veya kanat bindirmeleri belirleyecektir.`;
+    } else {
+      return `[MuzSports AI - Taktiksel Analiz]\n\nAnlık olarak ${leadTeam} maçı ${homeLeading ? `${homeScore}-${awayScore}` : `${awayScore}-${homeScore}`} üstünlükle götürüyor. ${statsDetail} ${trailingTeam} takımı geri dönüş için kanat organizasyonlarını artırmalı ve rakip yarı sahada daha fazla baskı kurmalı. ${leadTeam} ise savunma derinliğini artırarak kontratak fırsatlarını kollamalı.`;
+    }
+  },
+
   isOlderThan30Days: (timestamp: number): boolean => {
     const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
     return Date.now() - timestamp > thirtyDaysInMs;
@@ -62,7 +106,6 @@ export const ai = {
     return Date.now() - timestamp > daysInMs;
   },
 
-  // test provider connectivity (lightweight)
   testProvider: async (): Promise<{ ok: boolean; message?: string }> => {
     const provider = storage.get('ai_provider', 'local') as Provider;
     const apiKey = storage.get('ai_api_key', '');

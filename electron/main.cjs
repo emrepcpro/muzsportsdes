@@ -5,6 +5,7 @@ const dgram = require('dgram');
 const UDP_PORT = 41235;
 let udpSocket = null;
 const activeWindows = new Set();
+const seenMessageKeys = new Set();
 
 function setupUDPSocket() {
   udpSocket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -21,6 +22,19 @@ function setupUDPSocket() {
   udpSocket.on('message', (msg, rinfo) => {
     try {
       const data = JSON.parse(msg.toString());
+      if (!data || !data.senderId || !data.timestamp || !data.type) return;
+
+      const messageKey = `${data.senderId}_${data.timestamp}_${data.type}`;
+      if (seenMessageKeys.has(messageKey)) {
+        return; // Filter out duplicates to avoid echo loops
+      }
+
+      seenMessageKeys.add(messageKey);
+      if (seenMessageKeys.size > 500) {
+        const firstKey = seenMessageKeys.values().next().value;
+        if (firstKey) seenMessageKeys.delete(firstKey);
+      }
+
       // Broadcast received message to all active BrowserWindow instances
       for (const win of activeWindows) {
         if (!win.isDestroyed()) {
@@ -43,8 +57,15 @@ function setupUDPSocket() {
 function broadcastUDP(data) {
   if (!udpSocket) return;
   try {
+    const messageKey = `${data.senderId}_${data.timestamp}_${data.type}`;
+    seenMessageKeys.add(messageKey);
+    if (seenMessageKeys.size > 500) {
+      const firstKey = seenMessageKeys.values().next().value;
+      if (firstKey) seenMessageKeys.delete(firstKey);
+    }
+
     const payload = Buffer.from(JSON.stringify(data));
-    // Broadcast to the local network broadcast address
+    // Broadcast to local network
     udpSocket.send(payload, 0, payload.length, UDP_PORT, '255.255.255.255', (err) => {
       if (err) {
         console.error('Failed to broadcast UDP message:', err);

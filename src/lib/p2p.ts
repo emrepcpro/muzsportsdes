@@ -21,6 +21,10 @@ class P2PManager {
   private listeners: Set<(message: P2PMessage) => void> = new Set();
   private sentMessagesHistory: Set<string> = new Set();
 
+  // High performance Canvas buffer & throttling
+  private canvasBuffer: any[] = [];
+  private canvasTimer: any = null;
+
   constructor() {
     this.channel = new BroadcastChannel('muzsports_p2p_mesh');
     this.senderId = Math.random().toString(36).substring(7);
@@ -41,7 +45,7 @@ class P2PManager {
         if (msg.senderId !== this.senderId && !this.sentMessagesHistory.has(messageKey)) {
           this.sentMessagesHistory.add(messageKey);
           // Keep sliding history window
-          if (this.sentMessagesHistory.size > 100) {
+          if (this.sentMessagesHistory.size > 200) {
             const firstKey = this.sentMessagesHistory.keys().next().value;
             if (firstKey) this.sentMessagesHistory.delete(firstKey);
           }
@@ -63,7 +67,32 @@ class P2PManager {
     });
   }
 
-  broadcast(type: string, payload: any) {
+  /**
+   * Broadcast message with optional immediate-mode or deferred batching.
+   */
+  broadcast(type: string, payload: any, immediate = true) {
+    // If drawing event and not immediate, buffer to prevent high-frequency congestions
+    if (type === 'CANVAS_DRAW' && !immediate) {
+      this.canvasBuffer.push(payload);
+      if (!this.canvasTimer) {
+        this.canvasTimer = setTimeout(() => {
+          if (this.canvasBuffer.length > 0) {
+            this.sendDirect('CANVAS_DRAW_BATCH', {
+              roomId: payload.roomId,
+              points: [...this.canvasBuffer],
+            });
+            this.canvasBuffer = [];
+          }
+          this.canvasTimer = null;
+        }, 16); // 60 FPS Throttle
+      }
+      return;
+    }
+
+    this.sendDirect(type, payload);
+  }
+
+  private sendDirect(type: string, payload: any) {
     const message: P2PMessage = {
       type,
       payload,
@@ -73,7 +102,7 @@ class P2PManager {
 
     const messageKey = `${message.senderId}_${message.timestamp}_${message.type}`;
     this.sentMessagesHistory.add(messageKey);
-    if (this.sentMessagesHistory.size > 100) {
+    if (this.sentMessagesHistory.size > 200) {
       const firstKey = this.sentMessagesHistory.keys().next().value;
       if (firstKey) this.sentMessagesHistory.delete(firstKey);
     }

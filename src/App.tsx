@@ -76,7 +76,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary selection:text-black">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top_left,_rgba(239,68,68,0.08),_transparent_40%)]">
+      <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top_left,_rgba(132,204,22,0.08),_transparent_40%)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 lg:px-6">
           <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
             <div className="rounded-3xl border border-primary/10 bg-background-card/90 p-6 shadow-[0_10px_40px_rgba(0,0,0,0.35)]">
